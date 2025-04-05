@@ -1,20 +1,29 @@
-# Use an official Node.js runtime as the base image
+# Start with the official Node.js image
 FROM node:18-alpine
 
-# Set the working directory in the container
+# Create a non-root user for security
+RUN addgroup -S nodeapp && adduser -S nodeapp -G nodeapp
+
+# Set working directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json
+# Copy package files first for better layer caching
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install dependencies (production only)
+RUN npm ci --only=production
 
-# Copy the rest of the application code
-COPY . .
+# Copy application code with proper permissions
+COPY --chown=nodeapp:nodeapp . .
+
+# Use non-root user for security
+USER nodeapp
 
 # Expose the port the app runs on
 EXPOSE 3000
+
+# Set production environment
+ENV NODE_ENV production
 
 # Command to run the application
 CMD ["node", "app.js"]
